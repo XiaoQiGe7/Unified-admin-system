@@ -54,3 +54,20 @@ export function translateTreeToData(data) {
     })
     return result
 }
+
+
+/**
+ * 
+ * @param {原数组} arr 
+ * @param {新数组} newArr 
+ */
+export function reSameArr (arr,newArr){
+    for(let i = 0;i < arr.length;i ++){                
+        const index = newArr.indexOf(arr[i])
+        if(index > -1){
+            newArr.splice(index,1)
+            arr.splice(i,1)
+        }
+    }
+    return {arr,newArr}
+}

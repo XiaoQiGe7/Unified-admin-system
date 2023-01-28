@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-button type="primary" @click="state.dialogVisible = true">添加</el-button>
+    <el-button type="primary" @click="add">添加</el-button>
 
     <el-dialog v-model="state.dialogVisible" title="添加菜单" @closed="initState">
       <el-form ref="ruleFormRef" :model="state.form" :rules="state.rules">
@@ -31,8 +31,8 @@
 
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="initState">Cancel</el-button>
-          <el-button type="primary" @click="addMenu(ruleFormRef)">确定</el-button>
+          <el-button @click="initState">取消</el-button>
+          <el-button type="primary" @click="confirm(ruleFormRef)">确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -41,6 +41,12 @@
       <el-table-column prop="name" label="Name" />
       <el-table-column prop="path" label="path" />
       <el-table-column prop="component" label="component" />
+      <el-table-column fixed="right" label="Operations" width="120">
+        <template #default="scoped">
+          <el-button link type="primary" size="small" @click="edit(scoped.row)">编辑</el-button>
+          <el-button link type="primary" size="small" @click="del(scoped.row)">删除</el-button>
+        </template>
+      </el-table-column>
     </el-table>
   </div>
 </template>
@@ -50,18 +56,19 @@ import { reactive, ref } from "@vue/reactivity";
 import {onBeforeMount} from "vue"
 import type {FormInstance,FormRules} from 'element-plus'
 // import {uuid} from "@/util/random.js"
-import {translateDataToTree} from "@/util/index.js"
+import {translateDataToTree} from "@/util/index"
 const formLabelWidth = '140px'
 const ruleFormRef = ref<FormInstance>()
 const state = reactive({
   dialogVisible:false,
   form:{},
+  formState:"",
   rules:<FormRules>({
     name:[{ required: true, message: '未填写菜单名称', trigger: 'blur' },],
     path:[{ required: true, message: '未填写路由地址', trigger: 'blur' },],
     component:[{ required: true, message: '未填写vue文件路径', trigger: 'blur' },],
   }),
-  level:0,
+  level: 0,
   options:[
     {
       value: 0,
@@ -75,20 +82,47 @@ const state = reactive({
   menuData: []
 })
 
-
-
-const addMenu = async function (formEl: FormInstance | undefined) {
+const add = function () {
+  state.dialogVisible = true
+  state.formState = 'add'
+}
+const edit = function (menu) {
+  if(menu.parentId) state.level = 1
+  state.form = menu
+  state.dialogVisible = true
+  state.formState = 'edit'
+}
+const confirm = async function (formEl: FormInstance | undefined) {
   await formEl.validate((valid,fields) => {
     if(valid) {
-      fetch("/api/system/addMenu",{
-        method:"post",
-        headers: { "Content-Type": "application/json" },
-        body:JSON.stringify(state.form)
-      }).then((r) => {
-        getMenuData()
-      })
-      initState()
+      state.formState === 'add' ? addMenu() : editMenu()
     }
+  })
+}
+
+const addMenu = async function () {
+  fetch("/api/system/addMenu",{
+    method:"post",
+    headers: { "Content-Type": "application/json" },
+    body:JSON.stringify(state.form)
+  }).then((r) => {
+    getMenuData()
+  })
+  initState()
+}
+const editMenu = async function () {
+  fetch("/api/system/upMenu",{
+    method:"post",
+    headers: { "Content-Type": "application/json" },
+    body:JSON.stringify(state.form)
+  }).then((r) => {
+    getMenuData()
+  })
+  initState()
+}
+const del = function (menu) {
+  fetch(`/api/system/delMenu?id=${menu.id}`).then((res) => {
+    getMenuData()
   })
 }
 const initState = function () {
